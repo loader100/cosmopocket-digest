@@ -1,4 +1,5 @@
 // digest.js  —— 发送 #bridge-feed 的 24h 摘要到 #strategy-buffer
+require('dotenv').config();
 import { WebClient } from '@slack/web-api';
 import dayjs from 'dayjs';
 import 'dotenv/config';
