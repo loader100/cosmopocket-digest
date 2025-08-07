@@ -1,14 +1,12 @@
-// digest.js  —— 发送 #bridge-feed 的 24h 摘要到 #strategy-buffer
 require('dotenv').config();
 import { WebClient } from '@slack/web-api';
 import dayjs from 'dayjs';
-import 'dotenv/config';
 
-const token      = process.env.SLACK_BOT_TOKEN;
+const token      = process.env.SLACK_ACCESS_TOKEN;   // ✅ 改成 ACCESS token
 const BRIDGE_ID  = process.env.CHANNEL_BRIDGE_ID;
 const BUFFER_ID  = process.env.CHANNEL_BUFFER_ID;
 const client     = new WebClient(token);
-const oldestTS   = (Date.now() - 24 * 3_600_000) / 1000;   // 24h 前
+const oldestTS   = (Date.now() - 24 * 3_600_000) / 1000;   // 24 小时前
 
 (async () => {
   const { messages } = await client.conversations.history({
@@ -19,9 +17,9 @@ const oldestTS   = (Date.now() - 24 * 3_600_000) / 1000;   // 24h 前
 
   const raw = messages.filter(m => !m.subtype);
 
-  const texts = raw.map(m => m.text);
-  const qs    = texts.filter(t => t.includes('?')).slice(0, 5)
-                     .map(t => `• ${t}`);
+  const texts  = raw.map(m => m.text);
+  const qs     = texts.filter(t => t.includes('?')).slice(0, 5)
+                      .map(t => `• ${t}`);
   const sparks = texts.filter(t => t.length > 60 && !t.includes('?'))
                       .slice(0, 5)
                       .map(t => `• ${t.slice(0, 80)}…`);
@@ -36,6 +34,11 @@ const oldestTS   = (Date.now() - 24 * 3_600_000) / 1000;   // 24h 前
     sparks.length ? sparks.join('\n') : '—',
   ].join('\n');
 
-  await client.chat.postMessage({ channel: BUFFER_ID, text: md, mrkdwn: true });
+  await client.chat.postMessage({
+    channel: BUFFER_ID,
+    text: md,
+    mrkdwn: true,
+  });
+
   console.log('Digest sent ✔');
 })();
