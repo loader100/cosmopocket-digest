@@ -1,19 +1,31 @@
 name: daily-digest
+
 on:
-  schedule:        # 每天 09:00 CST = 01:00 UTC
-    - cron: '0 1 * * *'
+  schedule:
+    - cron: '0 1 * * *'  # 每天 09:00 CST
   workflow_dispatch:
+
 jobs:
   run:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - run: npm install @slack/web-api dayjs
-      - run: node digest.js
-        env:
-          SLACK_BOT_TOKEN:   ${{ secrets.SLACK_BOT_TOKEN }}
-          CHANNEL_BRIDGE_ID: ${{ secrets.CHANNEL_BRIDGE_ID }}
-          CHANNEL_BUFFER_ID: ${{ secrets.CHANNEL_BUFFER_ID }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Write .env file from GitHub Secrets
+        run: |
+          echo "SLACK_CLIENT_ID=${{ secrets.SLACK_CLIENT_ID }}" >> .env
+          echo "SLACK_CLIENT_SECRET=${{ secrets.SLACK_CLIENT_SECRET }}" >> .env
+          echo "SLACK_REFRESH_TOKEN=${{ secrets.SLACK_REFRESH_TOKEN }}" >> .env
+          echo "CHANNEL_BRIDGE_ID=${{ secrets.CHANNEL_BRIDGE_ID }}" >> .env
+          echo "CHANNEL_BUFFER_ID=${{ secrets.CHANNEL_BUFFER_ID }}" >> .env
+
+      - name: Run digest script
+        run: node digest.js
