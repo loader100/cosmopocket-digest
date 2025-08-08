@@ -1,51 +1,44 @@
-// digest.js
-import dotenv from 'dotenv';
+// digest.js —— 自动刷新 token 后发送 Slack 消息
+
 import { WebClient } from '@slack/web-api';
-import dayjs from 'dayjs';
-import fetch from 'node-fetch';
-import refreshAccessToken from './auth.js';  // 关键步骤：引入 auth.js
+import dotenv from 'dotenv';
+import refreshAccessToken from './auth.js';
 
 dotenv.config();
 
-const run = async () => {
+(async () => {
   try {
-    // 1. 获取最新 access token
-    const token = await refreshAccessToken();
-    console.log('✅ Using Slack Access Token:', token);
+    // ✅ 1. 获取最新 access_token（xoxe-开头的 User Token）
+    const { access_token } = await refreshAccessToken();
 
-    // 2. 创建 Slack 客户端
-    const web = new WebClient(token);
+    // ✅ 2. 初始化 Slack Web API 客户端
+    const slack = new WebClient(access_token);
 
-    // 3. 定义频道
-    const CHANNEL_BRIDGE_ID = process.env.CHANNEL_BRIDGE_ID;
-    const CHANNEL_BUFFER_ID = process.env.CHANNEL_BUFFER_ID;
+    // ✅ 3. 读取环境变量中的频道 ID
+    const channelBridgeId = process.env.CHANNEL_BRIDGE_ID;
+    const channelBufferId = process.env.CHANNEL_BUFFER_ID;
 
-    // 4. 获取最近一天消息
-    const result = await web.conversations.history({
-      channel: CHANNEL_BRIDGE_ID,
-      oldest: dayjs().subtract(1, 'day').unix(),
+    if (!channelBridgeId || !channelBufferId) {
+      throw new Error('CHANNEL_BRIDGE_ID 或 CHANNEL_BUFFER_ID 缺失');
+    }
+
+    // ✅ 4. 拉取上游频道消息摘要（你可以自定义摘要逻辑）
+    const messages = await slack.conversations.history({
+      channel: channelBridgeId,
+      limit: 10,
     });
 
-    const messages = result.messages || [];
+    const summary = messages.messages.map(msg => `• ${msg.text}`).join('\n');
 
-    // 5. 简化摘要逻辑（这里只保留文本消息）
-    const digest = messages
-      .filter((msg) => msg.type === 'message' && msg.text)
-      .map((msg) => `• ${msg.text}`)
-      .join('\n');
-
-    const finalDigest = `📣 昨日摘要（${dayjs().format('YYYY-MM-DD')}）\n${digest}`;
-
-    // 6. 发送到 buffer 频道
-    await web.chat.postMessage({
-      channel: CHANNEL_BUFFER_ID,
-      text: finalDigest,
+    // ✅ 5. 发送摘要到下游频道
+    await slack.chat.postMessage({
+      channel: channelBufferId,
+      text: `📝 今日摘要：\n${summary}`,
     });
 
-    console.log('✅ 摘要推送成功！');
-  } catch (error) {
-    console.error('❌ 错误:', error);
+    console.log('✅ 摘要推送成功');
+
+  } catch (err) {
+    console.error('❌ digest.js 执行失败:', err.message || err);
   }
-};
-
-run();
+})();
