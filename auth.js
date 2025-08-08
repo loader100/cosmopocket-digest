@@ -1,37 +1,36 @@
-// auth.js —— 获取 xoxe- 用户 access_token（Modern App）
-import axios from 'axios';
-import dotenv from 'dotenv';
-
-dotenv.config();
+// auth.js —— 自动获取新 access token（Slack Modern App） for Node.js CJS
+const axios = require('axios');
+require('dotenv').config();
 
 const refreshAccessToken = async () => {
-  const response = await axios.post('https://slack.com/api/oauth.v2.access', null, {
-    params: {
-      grant_type: 'refresh_token',
-      client_id: process.env.SLACK_CLIENT_ID,
-      client_secret: process.env.SLACK_CLIENT_SECRET,
-      refresh_token: process.env.SLACK_REFRESH_TOKEN,
-    },
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-  });
+  try {
+    const response = await axios.post('https://slack.com/api/oauth.v2.access', null, {
+      params: {
+        grant_type: 'refresh_token',
+        client_id: process.env.SLACK_CLIENT_ID,
+        client_secret: process.env.SLACK_CLIENT_SECRET,
+        refresh_token: process.env.SLACK_REFRESH_TOKEN,
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
 
-  if (!response.data.ok) {
-    throw new Error(`Failed to refresh token: ${JSON.stringify(response.data)}`);
+    if (!response.data.ok) {
+      throw new Error(`❌ Failed to refresh token: ${JSON.stringify(response.data)}`);
+    }
+
+    const token = response.data.access_token;
+    console.log('✅ New Access Token:', token);
+    return token;
+  } catch (err) {
+    console.error('❌ Error refreshing token:', err.message);
   }
-
-  const token = response.data.access_token;
-
-  // ✅ 控制台打印 token 以供测试
-  console.log('✅ New Access Token:', token);
-
-  return { access_token: token };
 };
 
-// ✅ 仅在直接运行 auth.js 时打印 token
-if (process.argv[1].includes('auth.js')) {
-  refreshAccessToken().catch(console.error);
+// 若直接执行此文件，自动触发刷新
+if (require.main === module) {
+  refreshAccessToken();
 }
 
-export default refreshAccessToken;
+module.exports = refreshAccessToken;
