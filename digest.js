@@ -11,6 +11,7 @@ const oldestTS = (Date.now() - 24 * 3600 * 1000) / 1000; // 24小时前
 
 (async () => {
   const token = await refreshAccessToken(); // 自动获取最新token
+  console.log("Access Token:", token);
   const client = new WebClient(token);
 
   const { messages } = await client.conversations.history({
