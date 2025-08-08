@@ -1,4 +1,4 @@
-// auth.js —— 自动获取新 access token（Slack Modern App）
+// auth.js —— 获取 xoxe- 用户 access_token（Modern App）
 import axios from 'axios';
 import dotenv from 'dotenv';
 
@@ -23,10 +23,15 @@ const refreshAccessToken = async () => {
 
   const token = response.data.access_token;
 
-  // ✅ ✅ ✅ 这就是关键的打印
+  // ✅ 控制台打印 token 以供测试
   console.log('✅ New Access Token:', token);
 
-  return token;
+  return { access_token: token };
 };
+
+// ✅ 仅在直接运行 auth.js 时打印 token
+if (process.argv[1].includes('auth.js')) {
+  refreshAccessToken().catch(console.error);
+}
 
 export default refreshAccessToken;
