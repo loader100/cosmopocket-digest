@@ -1,41 +1,51 @@
+// digest.js
 import dotenv from 'dotenv';
-dotenv.config();
-
 import { WebClient } from '@slack/web-api';
 import dayjs from 'dayjs';
-import refreshAccessToken from './auth.js';
+import fetch from 'node-fetch';
+import refreshAccessToken from './auth.js';  // 关键步骤：引入 auth.js
 
-const BRIDGE_ID = process.env.CHANNEL_BRIDGE_ID;
-const BUFFER_ID = process.env.CHANNEL_BUFFER_ID;
-const oldestTS = (Date.now() - 24 * 3600 * 1000) / 1000; // 24小时前
+dotenv.config();
 
-(async () => {
-  const token = await refreshAccessToken(); // 自动获取最新token
-  console.log("Access Token:", token);
-  const client = new WebClient(token);
+const run = async () => {
+  try {
+    // 1. 获取最新 access token
+    const token = await refreshAccessToken();
+    console.log('✅ Using Slack Access Token:', token);
 
-  const { messages } = await client.conversations.history({
-    channel: BRIDGE_ID,
-    oldest: oldestTS,
-    limit: 800,
-  });
+    // 2. 创建 Slack 客户端
+    const web = new WebClient(token);
 
-  const raw = messages.filter(m => !m.subtype);
+    // 3. 定义频道
+    const CHANNEL_BRIDGE_ID = process.env.CHANNEL_BRIDGE_ID;
+    const CHANNEL_BUFFER_ID = process.env.CHANNEL_BUFFER_ID;
 
-  const texts = raw.map(m => m.text);
-  const qs = texts.filter(t => t.includes('?')).slice(0, 5).map(t => `• ${t}`);
-  const sparks = texts.filter(t => t.length > 60 && !t.includes('?')).slice(0, 5).map(t => `• ${t.slice(0, 80)}…`);
+    // 4. 获取最近一天消息
+    const result = await web.conversations.history({
+      channel: CHANNEL_BRIDGE_ID,
+      oldest: dayjs().subtract(1, 'day').unix(),
+    });
 
-  const md = [
-    `*Strategy-Digest · ${dayjs().format('YYYY-MM-DD')}*`,
-    '',
-    '🔍 *Top Questions*',
-    qs.length ? qs.join('\n') : '—',
-    '',
-    '✨ *Idea Sparks*',
-    sparks.length ? sparks.join('\n') : '—',
-  ].join('\n');
+    const messages = result.messages || [];
 
-  await client.chat.postMessage({ channel: BUFFER_ID, text: md, mrkdwn: true });
-  console.log('Digest sent ✔');
-})();
+    // 5. 简化摘要逻辑（这里只保留文本消息）
+    const digest = messages
+      .filter((msg) => msg.type === 'message' && msg.text)
+      .map((msg) => `• ${msg.text}`)
+      .join('\n');
+
+    const finalDigest = `📣 昨日摘要（${dayjs().format('YYYY-MM-DD')}）\n${digest}`;
+
+    // 6. 发送到 buffer 频道
+    await web.chat.postMessage({
+      channel: CHANNEL_BUFFER_ID,
+      text: finalDigest,
+    });
+
+    console.log('✅ 摘要推送成功！');
+  } catch (error) {
+    console.error('❌ 错误:', error);
+  }
+};
+
+run();
