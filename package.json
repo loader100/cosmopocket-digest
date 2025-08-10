@@ -2,29 +2,16 @@
   "name": "cosmopocket-digest",
   "version": "1.0.0",
   "description": "",
-  "type": "module",                       ← ✅ 添加这一行！
+  "private": true,
+  "type": "commonjs",
   "main": "digest.js",
- {
   "scripts": {
     "dev:auth": "node test-auth.js",
     "dev:digest": "node digest.js"
-  }
-}
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/loaderluge/cosmopocket-digest.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/loaderluge/cosmopocket-digest/issues"
-  },
-  "homepage": "https://github.com/loaderluge/cosmopocket-digest#readme",
   "dependencies": {
     "@slack/web-api": "^7.9.3",
     "dayjs": "^1.11.13",
-    "dotenv": "^17.2.1",
-    "node-fetch": "^3.3.2"
+    "dotenv": "^16.4.5"
   }
 }
