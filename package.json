@@ -4,9 +4,12 @@
   "description": "",
   "type": "module",                       ← ✅ 添加这一行！
   "main": "digest.js",
+ {
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+    "dev:auth": "node test-auth.js",
+    "dev:digest": "node digest.js"
+  }
+}
   "repository": {
     "type": "git",
     "url": "https://github.com/loaderluge/cosmopocket-digest.git"
