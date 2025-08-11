@@ -1,4 +1,4 @@
-// auth.js —— 自动获取新 access token（Slack Modern App） for Node.js CJS
+// auth.js —— 自动获取新 access token（Slack Modern App） CJS 版本
 const axios = require('axios');
 require('dotenv').config();
 
@@ -28,7 +28,7 @@ const refreshAccessToken = async () => {
   }
 };
 
-// 若直接执行此文件，自动触发刷新
+// 如果直接运行该文件，就刷新 token
 if (require.main === module) {
   refreshAccessToken();
 }
