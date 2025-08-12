@@ -12,6 +12,7 @@ jobs:
       SLACK_BOT_TOKEN:   ${{ secrets.SLACK_BOT_TOKEN }}   # ← 名字对齐代码
       CHANNEL_BUFFER_ID: ${{ secrets.CHANNEL_BUFFER_ID }}
       CHANNEL_BRIDGE_ID: ${{ secrets.CHANNEL_BRIDGE_ID }} # 可选
+      OPENAI_API_KEY:     ${{ secrets.OPENAI_API_KEY }}
       CI: "true"
 
     steps:
