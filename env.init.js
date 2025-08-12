@@ -1,11 +1,18 @@
-// env.init.js  (CommonJS)
+// env.init.js
+'use strict';
 require('dotenv').config();
 
-function requireEnv(...keys) {
-  const missing = keys.filter(k => !process.env[k] || String(process.env[k]).trim() === '');
-  if (missing.length) {
-    throw new Error(`Missing required env: ${missing.join(', ')}`);
+function get(name, optional = false) {
+  const v = process.env[name];
+  if (!v && !optional) {
+    throw new Error(`Missing required env: ${name}`);
   }
+  return v || '';
 }
 
-module.exports = { requireEnv };
+module.exports = {
+  SLACK_BOT_TOKEN:   get('SLACK_BOT_TOKEN'),
+  CHANNEL_BUFFER_ID: get('CHANNEL_BUFFER_ID'),
+  CHANNEL_BRIDGE_ID: get('CHANNEL_BRIDGE_ID'),
+  OPENAI_API_KEY:    get('OPENAI_API_KEY'), // 如想在无LLM时跳过，可改为 optional = true
+};

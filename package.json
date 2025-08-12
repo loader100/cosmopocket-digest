@@ -1,7 +1,6 @@
 {
   "name": "cosmopocket-digest",
   "version": "1.0.0",
-  "description": "",
   "private": true,
   "type": "commonjs",
   "main": "digest.js",
@@ -12,6 +11,7 @@
   "dependencies": {
     "@slack/web-api": "^7.9.3",
     "dayjs": "^1.11.13",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "openai": "^5.12.2"
   }
 }
