@@ -1,9 +1,10 @@
 name: Daily Digest
 
 on:
+  # 每天 UTC 01:00 运行（≈ 北京时间 09:00）
   schedule:
-    # UTC 01:00 ≈ 北京时间 09:00
     - cron: '0 1 * * *'
+  # 允许手动触发
   workflow_dispatch: {}
 
 env:
@@ -14,27 +15,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1) 拉代码
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # 2) 装 Node（先不启用缓存，避免路径解析失败而中断；后续有 lockfile 再开）
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: sinan-relay/package-lock.json
+          # 如需开启缓存，先提交 package-lock.json，再取消下面两行注释
+          # cache: 'npm'
+          # cache-dependency-path: |
+          #   package-lock.json
+          #   **/package-lock.json
 
-      - name: Install deps
-        working-directory: sinan-relay
-        run: npm ci
+      # 3) 安装依赖（两种情况皆可）
+      # - 若仓库根目录存在 package.json：优先使用 npm ci（速度快、可复现）
+      # - 若没有：按需安装 openai / @slack/web-api / undici / dotenv 到 runner（不写入仓库）
+      - name: Install deps (smart)
+        run: |
+          set -e
+          if [ -f package.json ]; then
+            echo "package.json detected -> using npm ci / npm i"
+            if [ -f package-lock.json ]; then
+              npm ci
+            else
+              npm install
+            fi
+          else
+            echo "No package.json -> install runtime deps only"
+            npm init -y >/dev/null 2>&1 || true
+            npm install --no-save openai @slack/web-api undici dotenv
+          fi
 
-      # 任选其一：A 或 B
-      # A) step 级 if（表达式要用 ${{ }} 包裹）
-      # - name: Export HTTPS proxy (optional)
-      #   if: ${{ secrets.HTTPS_PROXY != '' }}
-      #   run: echo "HTTPS_PROXY=${{ secrets.HTTPS_PROXY }}" >> $GITHUB_ENV
-
-      # B) 用 bash 判断（推荐，更稳）
+      # 4)（可选）导出代理（如果没在仓库 Secrets 配置 HTTPS_PROXY，会自动跳过）
       - name: Export HTTPS proxy (optional)
         run: |
           if [ -n "${{ secrets.HTTPS_PROXY }}" ]; then
@@ -44,14 +59,15 @@ jobs:
             echo "HTTPS_PROXY not set, skip."
           fi
 
+      # 5) 运行 Digest（**直接 node digest.js**，不再依赖 npm script，杜绝“Missing script”）
       - name: Run digest
-        working-directory: sinan-relay
         env:
           SLACK_BOT_TOKEN:    ${{ secrets.SLACK_BOT_TOKEN }}
           OPENAI_API_KEY:     ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL:       gpt-4o-mini
-          DIGEST_HOURS:       24
+          OPENAI_MODEL:       gpt-4o-mini            # 如你的脚本支持其它模型，可改
+          DIGEST_HOURS:       24                     # 你的脚本若读取该变量，这里可调
           CHANNEL_BRIDGE_ID:  ${{ secrets.CHANNEL_BRIDGE_ID }}
           CHANNEL_BUFFER_ID:  ${{ secrets.CHANNEL_BUFFER_ID }}
           HTTPS_PROXY:        ${{ secrets.HTTPS_PROXY }}
-        run: npm run digest
+        run: |
+          node digest.js
