@@ -2,12 +2,12 @@ name: Daily Digest
 
 on:
   schedule:
-    # 北京时间 09:00 ≈ UTC 01:00
+    # UTC 01:00 ≈ 北京时间 09:00
     - cron: '0 1 * * *'
-  workflow_dispatch: {}   # 允许手动运行
+  workflow_dispatch: {}
 
 env:
-  TZ: Asia/Shanghai       # 统一使用北京时间
+  TZ: Asia/Shanghai
 
 jobs:
   digest:
@@ -28,10 +28,21 @@ jobs:
         working-directory: sinan-relay
         run: npm ci
 
-      # ✅ 如果你的 GitHub runner 需要代理，解开下面两步并在 Secrets 里配置 HTTPS_PROXY
+      # 任选其一：A 或 B
+      # A) step 级 if（表达式要用 ${{ }} 包裹）
+      # - name: Export HTTPS proxy (optional)
+      #   if: ${{ secrets.HTTPS_PROXY != '' }}
+      #   run: echo "HTTPS_PROXY=${{ secrets.HTTPS_PROXY }}" >> $GITHUB_ENV
+
+      # B) 用 bash 判断（推荐，更稳）
       - name: Export HTTPS proxy (optional)
-        if: ${{ secrets.HTTPS_PROXY != '' }}
-        run: echo "HTTPS_PROXY=${{ secrets.HTTPS_PROXY }}" >> $GITHUB_ENV
+        run: |
+          if [ -n "${{ secrets.HTTPS_PROXY }}" ]; then
+            echo "HTTPS_PROXY=${{ secrets.HTTPS_PROXY }}" >> $GITHUB_ENV
+            echo "Set HTTPS_PROXY"
+          else
+            echo "HTTPS_PROXY not set, skip."
+          fi
 
       - name: Run digest
         working-directory: sinan-relay
@@ -40,9 +51,7 @@ jobs:
           OPENAI_API_KEY:     ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL:       gpt-4o-mini
           DIGEST_HOURS:       24
-          # 下面两个可选：若不填将按频道名查找
           CHANNEL_BRIDGE_ID:  ${{ secrets.CHANNEL_BRIDGE_ID }}
           CHANNEL_BUFFER_ID:  ${{ secrets.CHANNEL_BUFFER_ID }}
-          # 代理可选
           HTTPS_PROXY:        ${{ secrets.HTTPS_PROXY }}
         run: npm run digest
