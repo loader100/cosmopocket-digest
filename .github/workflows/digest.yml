@@ -1,25 +1,48 @@
-name: CosmoPocket Digest
+name: Daily Digest
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 1 * * *'   # UTC 01:00 -> 北京时间 09:00
+    # 北京时间 09:00 ≈ UTC 01:00
+    - cron: '0 1 * * *'
+  workflow_dispatch: {}   # 允许手动运行
+
+env:
+  TZ: Asia/Shanghai       # 统一使用北京时间
 
 jobs:
-  run:
+  digest:
     runs-on: ubuntu-latest
-    env:
-      SLACK_BOT_TOKEN:   ${{ secrets.SLACK_BOT_TOKEN }}
-      CHANNEL_BUFFER_ID: ${{ secrets.CHANNEL_BUFFER_ID }}
-      CHANNEL_BRIDGE_ID: ${{ secrets.CHANNEL_BRIDGE_ID }}
-      OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
-      CI: "true"
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '20'
           cache: 'npm'
-      - run: npm ci
-      - run: node test-auth.js
-      - run: node digest.js
+          cache-dependency-path: sinan-relay/package-lock.json
+
+      - name: Install deps
+        working-directory: sinan-relay
+        run: npm ci
+
+      # ✅ 如果你的 GitHub runner 需要代理，解开下面两步并在 Secrets 里配置 HTTPS_PROXY
+      - name: Export HTTPS proxy (optional)
+        if: ${{ secrets.HTTPS_PROXY != '' }}
+        run: echo "HTTPS_PROXY=${{ secrets.HTTPS_PROXY }}" >> $GITHUB_ENV
+
+      - name: Run digest
+        working-directory: sinan-relay
+        env:
+          SLACK_BOT_TOKEN:    ${{ secrets.SLACK_BOT_TOKEN }}
+          OPENAI_API_KEY:     ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL:       gpt-4o-mini
+          DIGEST_HOURS:       24
+          # 下面两个可选：若不填将按频道名查找
+          CHANNEL_BRIDGE_ID:  ${{ secrets.CHANNEL_BRIDGE_ID }}
+          CHANNEL_BUFFER_ID:  ${{ secrets.CHANNEL_BUFFER_ID }}
+          # 代理可选
+          HTTPS_PROXY:        ${{ secrets.HTTPS_PROXY }}
+        run: npm run digest
